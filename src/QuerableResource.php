@@ -31,26 +31,30 @@ abstract class QuerableResource implements Responsable, JsonSerializable,UrlRout
 
     }
 
-
+    /**
+     * Returns the base query, must be implemented by user
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     abstract protected function getQuery():Builder;
 
-    ///
 
-
-    final private function getData(){
-        //TODO:JUST A METHOD STUB!
-
+    /**
+     * Process the query and returns a Resource
+     * @return \Illuminate\Http\Resources\Json\Resource
+     */
+    final private function getResource(){
         $query = $this->getQuery();
+
+        $pagination=null;
+        $result = null;
+
         if($this->paginate){
-            $query->paginate($this->paginate);
+            $result=$query->simplePaginate($this->paginate);
+        }else{
+            $result=$query->get();
         }
 
-        $result = $query->get();
-        if($this->useResource) {
-            $result = call_user_func([$this->useResource,'collection'],$result);
-        }
-
-        return $result;
+        return call_user_func([$this->useResource?:\Illuminate\Http\Resources\Json\Resource::class,'collection'],$result);
     }
 
     public function paginate($page_size){
@@ -63,25 +67,25 @@ abstract class QuerableResource implements Responsable, JsonSerializable,UrlRout
     /**
      * Automatically casts to response
      * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public final function toResponse($request)
     {
-        return response()->json($this);
+        return $this->getResource()->toResponse($request);
     }
 
     /**
-     * Specify data which should be serialized to JSON
-     * @link http://php.net/manual/en/jsonserializable.jsonserialize.php
-     * @return mixed data which can be serialized by <b>json_encode</b>,
-     * which is a value of any type other than a resource.
-     * @since 5.4.0
+     * Return the data to be serialized
      */
     public final function jsonSerialize()
     {
-        return $this->getData();
+        return $this->getResource();
     }
 
+    /**
+     * Returns a JSON string if cast to string
+     * @return string
+     */
     public final function __toString()
     {
         return json_encode($this);
