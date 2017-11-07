@@ -1,0 +1,20 @@
+{
+	"name": "plokko/querable-resource",
+	"description": "Ajax-querable resource for Laravel 5.5",
+	"keywords": [
+		"laravel",
+		"laravel 5.5",
+		"resource",
+		"eloquent",
+		"filter",
+		"paginate"
+	],
+	"autoload": {
+		"psr-4": {
+			"Plokko\\QuerableResource\\": "src"
+		}
+	},
+	"require": {
+        "laravel/framework": "^5.5.*",
+	}
+}
