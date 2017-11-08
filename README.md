@@ -68,6 +68,34 @@ Route::get('/test',function(){
 });
 ```
 By default the comparison is done with the *LIKE 'value%'*; for example the page `/test?name=a` will search all the user with a name starting with 'a'.
+#### Changing query field name
+If you want to group all filtering field in an input group, for example filter[filed_name], you need to edit the protected propriety *$filterQueryParameter* 
+
+```php
+class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
+      protected
+        $filteredFields = ['name','email'], // enable filtering for name and email columns
+        $filterQueryParameter='filter';
+      protected function getQuery(): Illuminate\Database\Eloquent\Builder
+      {
+          return App\User::where('id','>',1); // Just a simple query to demonstrate functionality
+      }
+}
+```
+The url of the last example will now be `/test?filter[name]=a`
 
 ### Advanced filtering rules
 ### Returning custom resource
+If you want to filter the results with a custom resource you can do it by simply specifying the name of your Resource class in the protected field *$useResource*:
+```php
+class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
+  protected
+   $useResource = \App\Http\Resources\UserResource::class;
+  protected function getQuery(): Illuminate\Database\Eloquent\Builder
+  {
+	  return App\User::where('id','>',1); // Just a simple query to demonstrate functionality
+  }
+}
+
+```
+
