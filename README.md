@@ -84,7 +84,30 @@ class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
 ```
 The url of the last example will now be `/test?filter[name]=a`
 
-### Advanced filtering rules
+#### Defined filtering rules
+
+#### Advanced filtering rules
+If your query needs a more fine-tuning you can override the default *filter* function and specify your custom filtering function:
+```php
+class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
+	// No need to specify $filteredFields, we're using a custom filtering function
+
+	//Override the default filtering function
+    protected function filter(Builder &$query,array $filterValues){
+		if(array_key_exists('name',$filterValues)){
+			$query->where('name','LIKE','%'.$filterValues['name'].'%');//apply your filtering
+		}
+		//....
+	}
+
+	protected function getQuery(): Illuminate\Database\Eloquent\Builder
+	{
+		return App\User::where('id','>',1); // Just a simple query to demonstrate functionality
+	}
+}
+```
+
+
 ### Returning custom resource
 If you want to filter the results with a custom resource you can do it by simply specifying the name of your Resource class in the protected field *$useResource*:
 ```php
