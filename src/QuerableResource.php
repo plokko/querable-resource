@@ -7,54 +7,82 @@ use JsonSerializable;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Database\Eloquent\Builder;
 
-abstract class QuerableResource implements Responsable, JsonSerializable,UrlRoutable
+abstract class QuerableResource implements Responsable, JsonSerializable, UrlRoutable
 {
     protected
-        $paginate           = null,
-        $filteredFields     = null,
-        $useResource        = null;
+        $paginate               = null,
+        $filteredFields         = null,
+        $useResource            = null,
+        $filterQueryParameter   = null;
 
 
     function __construct(){}
 
 
-    protected function filter(Builder $query,array $filterValues){
-        if($this->filteredFields){
-            foreach($filterValues AS $key=>$value){
-                if(!array_key_exists($key,$this->filteredFields))
+    protected function filter(Builder &$query,array $filterValues){
+        if($this->filteredFields)
+        {
+
+            //-- Prepare filters if sequentials --//
+            $filters = $this->filteredFields;
+
+            $keys = array_keys($filters);
+            if($keys==array_keys($keys)){
+                //filter is NOT associative, fill keys
+                $filters=array_fill_keys(array_values($filters),'like');
+            }
+            unset($keys);
+
+            ///-- Apply filters --//
+            foreach($filterValues AS $key => $value)
+            {
+                if(!array_key_exists($key,$filters))
                     continue;
-                $query->where($key,'LIKE',$value.'%');
+                $filter = $filters[$key];
+                $filterType='=';
+                if(is_array($filter))
+                {
+                    $filterType=$filter['type']?:'=';
+                }else{
+                    $filterType = $filter;
+                }
+                switch($filterType)
+                {
+                    case '=':case 'equals':
+                        $query->where($key,$value);
+                        break;
+                    case 'like':
+                        $query->where($key,'LIKE',$value.'%');
+                    break;
+                    default:
+                }
             }
         }
-
-        return $query;
-
     }
 
-    /**
-     * Returns the base query, must be implemented by user
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
+
     abstract protected function getQuery():Builder;
 
+    ///
 
-    /**
-     * Process the query and returns a Resource
-     * @return \Illuminate\Http\Resources\Json\Resource
-     */
+
     final private function getResource(){
         $query = $this->getQuery();
 
-        $pagination=null;
-        $result = null;
+        $this->filter($query,$this->filterQueryParameter?request()->input($this->filterQueryParameter):request()->all());
 
+
+        $result = null;
         if($this->paginate){
             $result=$query->simplePaginate($this->paginate);
         }else{
             $result=$query->get();
         }
 
-        return call_user_func([$this->useResource?:\Illuminate\Http\Resources\Json\Resource::class,'collection'],$result);
+        $resource = call_user_func([$this->useResource?:\Illuminate\Http\Resources\Json\Resource::class,'collection'],$result);
+        /**@var $resource \Illuminate\Http\Resources\Json\Resource**/
+
+        return $resource;
     }
 
     public function paginate($page_size){
@@ -67,7 +95,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable,UrlRout
     /**
      * Automatically casts to response
      * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\Response
      */
     public final function toResponse($request)
     {
@@ -75,17 +103,17 @@ abstract class QuerableResource implements Responsable, JsonSerializable,UrlRout
     }
 
     /**
-     * Return the data to be serialized
+     * Specify data which should be serialized to JSON
+     * @link http://php.net/manual/en/jsonserializable.jsonserialize.php
+     * @return mixed data which can be serialized by <b>json_encode</b>,
+     * which is a value of any type other than a resource.
+     * @since 5.4.0
      */
     public final function jsonSerialize()
     {
         return $this->getResource();
     }
 
-    /**
-     * Returns a JSON string if cast to string
-     * @return string
-     */
     public final function __toString()
     {
         return json_encode($this);
