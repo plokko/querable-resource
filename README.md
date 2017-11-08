@@ -98,4 +98,6 @@ class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
 }
 
 ```
+The class will now return the specified resource (as a collection);
+for further detail read [Laravel 5.5 API resources](url=https://laravel.com/docs/5.5/eloquent-resources)
 
