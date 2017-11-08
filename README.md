@@ -84,7 +84,7 @@ class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
 ```
 The url of the last example will now be `/test?filter[name]=a`
 
-#### Defined filtering rules
+#### Define filtering rules
 
 #### Advanced filtering rules
 If your query needs a more fine-tuning you can override the default *filter* function and specify your custom filtering function:
