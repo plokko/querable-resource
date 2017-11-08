@@ -106,7 +106,7 @@ class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
 	}
 }
 ```
-
+Don't worry, pagination and query field name will also be automatically applied to your filtering, no need to implement them!
 
 ### Returning custom resource
 If you want to filter the results with a custom resource you can do it by simply specifying the name of your Resource class in the protected field *$useResource*:
