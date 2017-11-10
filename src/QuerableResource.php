@@ -74,7 +74,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
         $result = null;
         if($this->paginate){
-            $result=$query->simplePaginate($this->paginate);
+            $result=$query->paginate($this->paginate);
         }else{
             $result=$query->get();
         }
