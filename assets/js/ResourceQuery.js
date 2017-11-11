@@ -3,75 +3,80 @@ class ResourceQuery
     constructor(url,opt={},data=null)
     {
         this._url    = url;
-        this._opt    = opt;
-        this._result = data;
-        this.params={
-            page:null,
-            filter:null,
+        this._opt    = {
+            filterField : 'filter',//Name of the filter query parameter
+            method      : 'get',
         };
+        if(opt)
+            Object.assign(this._opt,opt);
+        this._result = data;
+        this._params={
+            page:null,
+            filter:{},
+        };
+
 
         if(!data)
         {
             let page = /([?&]page=)([\d]+)/.exec(url);
             if(page){
-                this.params.page = page[2];
+                this._params.page = page[2];
             }
         }
+        
     }
 
-    data(){return this._result.data;}
-    get data(){return this.data()};
+    get data(){ return this._result?this._result.data:undefined; }
 
-    hasPaging(){return this._result.meta && this._result.meta.current_page;}
-    get hasPaging(){return this.hasPaging();}
+    hasPaging(){return this._result? this._result.meta && this._result.meta.current_page : undefined;}
 
     currentPage(){return this.hasPaging()?this._result.meta && this._result.meta.current_page && this._result.links:null;}
-    get currentPage(){return this.currentPage();}
-
 
     hasPrev(){return this.hasPaging() && this._result.links.prev;}
-    get hasPrev(){return this.hasPrev;}
-
     hasNext(){return this.hasPaging() && this._result.links.next;}
-    get hasNext(){return hasNext;}
 
     lastPage(){ return this.hasPaging()?undefined:this._result.meta.last_page; }
-    get lastPage(){return this.lastPage();}
-
     itemsPerPage(){ return this.hasPaging()?undefined:this._result.meta.per_page; }
-    get itemsPerPage(){return this.itemsPerPage();}
 
 
     /*** Filtering ***/
     filter(key,value){
-        this.params.filter[key]=value;
+        this._params.filter[key]=value;
         return this;
     }
 
     unFilter(key){
-        delete this.params.filter[key];
+        delete this._params.filter[key];
         return this;
     }
 
     removeFilters(){
-        this.params.filter={};
+        this._params.filter={};
         return this;
     }
 
     /*** get results ***/
 
-    async query(params={}){
-
+    async query(args={}){
         let url    = this._url;
-        params = Object.assign({},this.params,params);
-        let method = this._opt.method||'get';
 
-        let result = await axios({
-            url,
-            method,
-            data:method=='get'?{params}:params;
-        });
-        return new QueryResult(this.url,this._opt,result);
+        let params = {
+            page:this._params.page,
+        };
+        if(this._opt.filterField){
+            params[this._opt.filterField]=this._params.filter;
+        }else{
+            Object.assign(params,this._params.filter);
+        }
+        //Override params
+        if(args)
+            Object.assign(params,args);
+
+        let method = this._opt.method||'get';
+        console.log('query:',{params,method});
+
+        let result = await axios[method](url,method==='get'?{params}:params);
+        return new ResourceQuery(this.url,this._opt,result.data);
     }
 
     async get()
@@ -85,7 +90,7 @@ class ResourceQuery
     }
 
     async getPrevPage(){
-        return this.getPage(currentPage-1);
+        return this.getPage(this.currentPage()-1);
     }
 
     async getPage(page){
@@ -101,3 +106,4 @@ class ResourceQuery
 }
 
 export default ResourceQuery;
+module.exports = ResourceQuery;
