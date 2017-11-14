@@ -11,7 +11,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 {
     protected
         $paginate               = null,
-        $filteredFields         = null,
+        $filteredFields         = 'filter',
         $useResource            = null,
         $filterQueryParameter   = null;
 
@@ -19,7 +19,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     function __construct(){}
 
 
-    protected function filter(Builder &$query,array $filterValues){
+    protected function filter(Builder &$query,array $filterValues=[]){
         if($this->filteredFields)
         {
 
@@ -69,7 +69,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     final private function getResource(){
         $query = $this->getQuery();
 
-        $this->filter($query,$this->filterQueryParameter?request()->input($this->filterQueryParameter):request()->all());
+        $this->filter($query,$this->filterQueryParameter?request()->input($this->filterQueryParameter,[]):request()->all());
 
 
         $result = null;

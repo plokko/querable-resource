@@ -1,3 +1,4 @@
+
 class ResourceQuery
 {
     constructor(url,opt={},data=null)
@@ -22,8 +23,10 @@ class ResourceQuery
             if(page){
                 this._params.page = page[2];
             }
+        }else{
+            this._params.page=data.meta.current_page;
         }
-        
+
     }
 
     get data(){ return this._result?this._result.data:undefined; }
@@ -42,11 +45,17 @@ class ResourceQuery
     /*** Filtering ***/
     filter(key,value){
         this._params.filter[key]=value;
+
         return this;
     }
 
     unFilter(key){
         delete this._params.filter[key];
+        return this;
+    }
+
+    filters(filters){
+        this._params.filter = filters;
         return this;
     }
 
@@ -60,23 +69,25 @@ class ResourceQuery
     async query(args={}){
         let url    = this._url;
 
+        let opt = Object.assign({},this._params);
+
+        if(args)
+            Object.assign(opt,args);
+
+
         let params = {
-            page:this._params.page,
+            page:opt.page,
         };
         if(this._opt.filterField){
-            params[this._opt.filterField]=this._params.filter;
+            params[this._opt.filterField]=Object.assign({},opt.filter);
         }else{
             Object.assign(params,this._params.filter);
         }
-        //Override params
-        if(args)
-            Object.assign(params,args);
-
+        
         let method = this._opt.method||'get';
-        console.log('query:',{params,method});
 
         let result = await axios[method](url,method==='get'?{params}:params);
-        return new ResourceQuery(this.url,this._opt,result.data);
+        return new ResourceQuery(url,this._opt,result.data);
     }
 
     async get()
