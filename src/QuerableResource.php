@@ -139,4 +139,12 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     public function getIterator() {
         return $this->getResource();
     }
+
+    function __call($key,$args){
+        switch($key){
+            case 'links':
+                return $this->getResource()->resource->links();
+            default:
+        }
+    }
 }
