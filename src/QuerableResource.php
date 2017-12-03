@@ -3,12 +3,13 @@ namespace Plokko\QuerableResource;
 
 use Exception;
 use Illuminate\Contracts\Routing\UrlRoutable;
+use Illuminate\Contracts\Support\Arrayable;
 use JsonSerializable;
 use IteratorAggregate;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Database\Eloquent\Builder;
 
-abstract class QuerableResource implements Responsable, JsonSerializable, UrlRoutable, IteratorAggregate
+abstract class QuerableResource implements Responsable, JsonSerializable, UrlRoutable, IteratorAggregate, Arrayable
 {
     protected
         $paginate               = null,
@@ -136,9 +137,14 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         throw new Exception('Resources may not be implicitly resolved from route bindings.');
     }
 
+    public final function toResource(){
+        return $this->getResource();
+    }
+
     public function getIterator() {
         return $this->getResource();
     }
+
 
     function __call($key,$args){
         switch($key){
@@ -146,5 +152,9 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
                 return $this->getResource()->resource->links();
             default:
         }
+    }
+
+    public function toArray(){
+        return $this->getResource()->resource->toArray();
     }
 }
