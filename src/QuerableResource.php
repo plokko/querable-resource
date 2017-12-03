@@ -155,6 +155,6 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     }
 
     public function toArray(){
-        return $this->getResource()->resource->toArray();
+        return $this->getResource()->toArray(request());
     }
 }
