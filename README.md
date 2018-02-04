@@ -32,13 +32,22 @@ To enable pagination edit the *$paginate* protected propriety or via the *pagina
 ```php
 class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
       protected
-        $paginate = 30;//30 items per page
+        $paginate = 30,//30 items per page
+        /**
+         * Allowed client-defined paginations,
+         *      if null no client pagination is allowed
+         *      if int set the maxium page size allowed
+         *      if array only the page sizes listed in the array are allowed
+         * @var int|array|null
+         */
+        $paginations = 100;
       protected function getQuery(): Illuminate\Database\Eloquent\Builder
       {
           return App\User::where('id','>',1); // Just a simple query to demonstrate functionality
       }
 }
 ```
+The propriety *$paginations* specify the user-selectable available values, if the value is `null` only *$paginate* user values will be discarted in favor of *$paginate*, if an int value is specified it will be set as the maxium value (in this case the user could select pagination up to 100 with default of 30 items per page); if an array (of integers) is specified the user value must be contained in the array or *$paginate* value will be used (ex. `[10,20,30,50]` )
 ```php
 Route::get('/test',function(){
     $qr = new TestQuerableResource();
@@ -124,3 +133,18 @@ class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
 The class will now return the specified resource (as a collection);
 for further detail on resources see [Laravel 5.5 API resources doc](url=https://laravel.com/docs/5.5/eloquent-resources).
 
+## Javascript integration
+This plugin contains some Javascript assets to help integrate with the php counterpart.
+
+This plugin includes two main helper: 
+ - *ResourceQuery* For building an Ajax request to the php plugin counterpart 
+ - *QuerableResult* Wrapper of *ResourceQuery* that returns a querable result instead of a query, usefull especially in Vue.js applications
+ 
+```javascript
+// Import from the /vendor folder, this path is related to /resources/assets/js/components/ 
+// Import QuerableResult and ResourceQuery (optional)
+import QuerableResult,{ResourceQuery} from "../../../../vendor/plokko/querable-resource/assets/js/QuerableResult";
+// Or just ResourceQuery
+//import ResourceQuery from "../../../../vendor/plokko/querable-resource/assets/js/ResourceQuery";
+
+```
