@@ -15,8 +15,15 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         $paginate               = null,
         $filteredFields         = 'filter',
         $useResource            = null,
-        $filterQueryParameter   = null;
-
+        $filterQueryParameter   = null,
+        /**
+         * Allowed client-defined paginations,
+         *      if null no client pagination is allowed
+         *      if int set the maxium page size allowed
+         *      if array only the page sizes listed in the array are allowed
+         * @var int|array|null
+         */
+        $paginations            = 20;
 
     function __construct(){}
 
@@ -76,7 +83,19 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
         $result = null;
         if($this->paginate){
-            $result=$query->paginate($this->paginate);
+            $pageSize = $this->paginate;
+
+            if($this->paginations!=null && request()->has('per_page')){
+                $perPage = intval(request()->input('per_page'));
+                if(is_array($this->paginations)){
+                    if(in_array($perPage,$this->paginations)){
+                        $pageSize = $perPage;
+                    }
+                }
+                else
+                    $pageSize = min($perPage,$this->paginations);
+            }
+            $result=$query->paginate($pageSize);
         }else{
             $result=$query->get();
         }

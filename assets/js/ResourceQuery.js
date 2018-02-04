@@ -29,17 +29,36 @@ class ResourceQuery
 
     }
 
-    get data(){ return this._result?this._result.data:undefined; }
+    // Return result data
+    get data(){ return this._result?this._result.data:null; }
 
-    hasPaging(){return this._result? this._result.meta && this._result.meta.current_page : undefined;}
+    // Return true if has paging enabled
+    hasPaging(){return this._result && this._result.meta && this._result.meta.current_page ;}
 
-    currentPage(){return this.hasPaging()?this._result.meta && this._result.meta.current_page && this._result.links:null;}
+    // Number of items per page
+    get itemsPerPage(){ return this.hasPaging()?parseInt(this._result.meta.per_page):null; }
+    set itemsPerPage(v){ return this._params.per_page = parseInt(v); }
+
+    //Current page
+    get currentPage(){return this.hasPaging()? parseInt(this._result.meta.current_page) :(this._params.page|null);}
+    set currentPage(v){this.page=v;}
+
+    // Shortand for current page
+    get page(){return this.currentPage;}
+    set page(v){this._params.page=v;}
+
+    // Total pages present
+    get totalPages(){return this.hasPaging() && this._result.meta.last_page?parseInt(this._result.meta.last_page):1;}
+    // Total items present
+    get totalItems(){return this.hasPaging()?parseInt(this._result.meta.total):(this.data?this.data.length:0);}
+
+    // Returns pagination data
+    get pagination(){return this.hasPaging()?this._result.meta:null;}
 
     hasPrev(){return this.hasPaging() && this._result.links.prev;}
     hasNext(){return this.hasPaging() && this._result.links.next;}
 
-    lastPage(){ return this.hasPaging()?undefined:this._result.meta.last_page; }
-    itemsPerPage(){ return this.hasPaging()?undefined:this._result.meta.per_page; }
+    lastPage(){ return this.hasPaging()?this._result.meta.last_page:null; }
 
 
     /*** Filtering ***/
@@ -66,18 +85,21 @@ class ResourceQuery
 
     /*** get results ***/
 
-    async query(args={}){
+    async query(override=null){
         let url    = this._url;
 
         let opt = Object.assign({},this._params);
 
-        if(args)
-            Object.assign(opt,args);
+        override && Object.assign(opt,override);
 
 
         let params = {
             page:opt.page,
         };
+
+        if(this._params.per_page)
+            params.per_page=this._params.per_page;
+
         if(this._opt.filterField){
             params[this._opt.filterField]=Object.assign({},opt.filter);
         }else{
@@ -117,4 +139,3 @@ class ResourceQuery
 }
 
 export default ResourceQuery;
-module.exports = ResourceQuery;
