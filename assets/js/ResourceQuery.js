@@ -86,10 +86,11 @@ class ResourceQuery
         return this;
     }
 
-    filters(filters){
+    set filters(filters){
         this._params.filter = filters;
         return this;
     }
+    get filters(){ return this._params.filter;}
 
     removeFilters(){
         this._params.filter={};

@@ -60,11 +60,11 @@ class QuerableResult {
         this.query.filters(this.filters);
         this.fetch();
     }
-    filters(filters){
-        this.filters=Object.assign({},this.filters,filters);
-        this.query.filters(this.filters);
+    set filters(filters){
+        this.query.filters = filters;
         this.fetch();
     }
+    get filters(){return this.query.filters}
 
     orderBy(field,direction){
         if(field!==this.orderByField || direction!== this.orderByDirection){
