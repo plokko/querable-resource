@@ -28,8 +28,11 @@ class QuerableResult {
 
     get itemsPerPage(){return this.query.itemsPerPage;}
     set itemsPerPage(v){
-        if(this.query.itemsPerPage===v)
+        if(this.query.itemsPerPage===v){
+            console.log('itemsPerPage ('+this.query.itemsPerPage+')already',v)
             return;
+        }
+
         this.query.itemsPerPage=v;
         this.fetch();
     }
@@ -63,11 +66,24 @@ class QuerableResult {
         this.fetch();
     }
 
-    fetch(){
+    orderBy(field,direction){
+        if(field!==this.orderByField || direction!== this.orderByDirection){
+            this.query.orderBy(field,direction);
+            this.fetch();
+        }
+    }
+
+    get orderByField(){return this.query.orderByField}
+    set orderByField(v){this.query.orderByField=v;}
+    get orderByDirection(){return this.query.orderByDirection}
+    set orderByDirection(v){this.query.orderByDirection=v;}
+
+
+    async fetch(){
         // _.debounce(()=>{
         console.log('Qr fetch...');
         this.ready=false;
-        this.query.get()
+        this.query.fetch()
                 .then(r=>{
                     this.ready=true;
                     this.query=r;
@@ -78,6 +94,8 @@ class QuerableResult {
                         this.error=e;
                     });
         // },500);
+
+
     }
 
 }

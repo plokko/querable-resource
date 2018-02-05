@@ -12,21 +12,47 @@ use Illuminate\Database\Eloquent\Builder;
 abstract class QuerableResource implements Responsable, JsonSerializable, UrlRoutable, IteratorAggregate, Arrayable
 {
     protected
-        $paginate               = null,
-        $filteredFields         = 'filter',
         $useResource            = null,
-        $filterQueryParameter   = null,
+
+        /**
+         * Set the default items per page or disable pagination if null
+         * @var null|int Default items per page or null if disabled
+         */
+        $paginate               = null,
         /**
          * Allowed client-defined paginations,
-         *      if null no client pagination is allowed
-         *      if int set the maxium page size allowed
-         *      if array only the page sizes listed in the array are allowed
+         *  - if null no client pagination is allowed
+         *  - if int set the maxium page size allowed
+         *  - if array only the page sizes listed in the array are allowed
          * @var int|array|null
          */
-        $paginations            = 20;
+        $paginations            = 20,
+
+        /**
+         * Fields that can be filtered
+         * @var array
+         */
+        $filteredFields         = [],
+        /**
+         * Query parameter to use as filter if null the fields will be taken from the root
+         * @var string|null
+         */
+        $filterQueryParameter   = 'filter',
+
+
+
+        /**
+         * Set the field name used for sorting
+         * @var string
+         */
+        $orderQueryParameter    = 'order_by',
+        /**
+         * List of orderable fields or null if disabled
+         * @var null|array
+         */
+        $orderBy                = null;
 
     function __construct(){}
-
 
     protected function filter(Builder &$query,array $filterValues=[]){
         if($this->filteredFields)
@@ -77,9 +103,22 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
     final private function getResource(){
         $query = $this->getQuery();
+        $request  =request();
 
-        $this->filter($query,$this->filterQueryParameter?request()->input($this->filterQueryParameter,[]):request()->all());
+        $orderBy=null;
 
+        $this->filter($query,$this->filterQueryParameter?$request->input($this->filterQueryParameter,[]):$request->all());
+
+        // orderby
+        if($this->orderBy && $request->has($this->orderQueryParameter)){
+            $field      = $request->input($this->orderQueryParameter);
+            $direction  = ($request->input($this->orderQueryParameter.'_dir'))=='desc'?'desc':'asc';
+
+            if($field && in_array($field,$this->orderBy)){
+                $query->orderBy($field,$direction);
+                $orderBy=compact('field','direction');
+            }
+        }
 
         $result = null;
         if($this->paginate){
@@ -102,6 +141,10 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
         $resource = call_user_func([$this->useResource?:\Illuminate\Http\Resources\Json\Resource::class,'collection'],$result);
         /**@var $resource \Illuminate\Http\Resources\Json\Resource**/
+
+        // Add orderBy info to response
+        if($this->orderBy)
+            $resource->additional(['orderBy'=>$orderBy]);
 
         return $resource;
     }

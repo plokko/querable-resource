@@ -13,6 +13,7 @@ class ResourceQuery
         this._result = data;
         this._params={
             page:null,
+            per_page:null,
             filter:{},
         };
 
@@ -24,10 +25,22 @@ class ResourceQuery
                 this._params.page = page[2];
             }
         }else{
-            this._params.page=data.meta.current_page;
+            if(data.meta){
+                this._params.page       = data.meta.current_page;
+                this._params.per_page   = data.meta.per_page;
+            }
         }
 
     }
+
+
+    orderBy(field,direction){
+        this._params.orderBy=field?[field,(direction==='desc'?'desc':'asc')]:null;
+    }
+    get orderByField(){return this._params.orderBy && this._params.orderBy[0];}
+    set orderByField(v){ this._params.orderBy=[v,this.orderByDirection]}
+    get orderByDirection(){return this._params.orderBy && this._params.orderBy[1];}
+    set orderByDirection(v){this._params.orderBy=[this.orderByField,(v==='desc'?'desc':'asc')]}
 
     // Return result data
     get data(){ return this._result?this._result.data:null; }
@@ -36,8 +49,8 @@ class ResourceQuery
     hasPaging(){return this._result && this._result.meta && this._result.meta.current_page ;}
 
     // Number of items per page
-    get itemsPerPage(){ return this.hasPaging()?parseInt(this._result.meta.per_page):null; }
-    set itemsPerPage(v){ return this._params.per_page = parseInt(v); }
+    get itemsPerPage(){ return (this.hasPaging()?parseInt(this._result.meta.per_page):this._params.per_page||null); }
+    set itemsPerPage(v){ this._params.per_page = v; }
 
     //Current page
     get currentPage(){return this.hasPaging()? parseInt(this._result.meta.current_page) :(this._params.page|null);}
@@ -97,8 +110,13 @@ class ResourceQuery
             page:opt.page,
         };
 
-        if(this._params.per_page)
-            params.per_page=this._params.per_page;
+        if(this._params.orderBy){
+            params['order_by']=this._params.orderBy[0];
+            params['order_by_dir']=this._params.orderBy[1];
+        }
+        if(this._params.per_page){
+            params.per_page=this._params.per_page||this.itemsPerPage;
+        }
 
         if(this._opt.filterField){
             params[this._opt.filterField]=Object.assign({},opt.filter);
@@ -112,7 +130,7 @@ class ResourceQuery
         return new ResourceQuery(url,this._opt,result.data);
     }
 
-    async get()
+    async fetch()
     {
         return this.query();
     }
@@ -136,6 +154,7 @@ class ResourceQuery
             page
         });
     }
+
 }
 
 export default ResourceQuery;
