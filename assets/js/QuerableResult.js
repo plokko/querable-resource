@@ -108,20 +108,21 @@ class QuerableResult {
     async fetchImmediate(){
         // _.debounce(()=>{
         console.log('Qr fetch...');
-        this.ready=false;
+        this.ready = false;
+		this.error = null;
 
         try{
             let r = await this.query.fetch();
 
-            this.ready=true;
-            this.error=null;
-            this.query=r;
+            this.ready = true;
+            this.error = null;
+            this.query = r;
 
             return this;
         }catch(e){
-            console.error('qq',e);
-            this.ready=true;
-            this.error=e;
+            console.error('QuerableResult fetching error:',e);
+            this.ready = true;
+            this.error = e;
             throw e;
         }
     }
