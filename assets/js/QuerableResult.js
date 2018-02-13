@@ -8,6 +8,7 @@ class QuerableResult {
         this.error=null;
         this._page=1;
         this.filters={};
+        this.debounce=200;
 
         this.init=false;
     }
@@ -16,7 +17,7 @@ class QuerableResult {
     get data(){
         if(!this.init){
             this.init = true;
-            this.fetch();//Fetch
+            this.fetchImmediate();//Auto fetch
         }
         return this.query.data
     }
@@ -80,22 +81,53 @@ class QuerableResult {
 
 
     async fetch(){
+        //Clear timer if present
+        this._debounce_timer && clearTimeout(this._debounce_timer);
+
+        if(this.debounce>0){
+            let resolve=null,abort=null;
+            let promise = new Promise((r,a)=>{ resolve=r;abort=a;});
+
+
+            this._debounce_timer=setTimeout(()=>{
+                    this._debounce_timer=null;
+                    try{
+                        resolve(this.fetchImmediate());
+                    }catch(e){
+                        abort(e);
+                    }
+                }, this.debounce);
+
+        }
+        else{
+            //Immediate
+            return this.fetchImmediate();
+        }
+    }
+
+    async fetchImmediate(){
         // _.debounce(()=>{
         console.log('Qr fetch...');
         this.ready=false;
-        this.query.fetch()
-                .then(r=>{
-                    this.ready=true;
-                    this.query=r;
-                })
-                .catch(e=>{
-                        console.error('qq',e);
-                        this.ready=true;
-                        this.error=e;
-                    });
-        // },500);
 
+        try{
+            let r = await this.query.fetch();
 
+            this.ready=true;
+            this.error=null;
+            this.query=r;
+
+            return this;
+        }catch(e){
+            console.error('qq',e);
+            this.ready=true;
+            this.error=e;
+            throw e;
+        }
+    }
+
+    resetData(){
+        this.query.resetResult();
     }
 
 }

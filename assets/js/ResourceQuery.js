@@ -156,6 +156,9 @@ class ResourceQuery
         });
     }
 
+    resetResult(){
+        this._result=null;
+    }
 }
 
 export default ResourceQuery;
