@@ -1,25 +1,47 @@
 import ResourceQuery from './ResourceQuery';
 
 class QuerableResult {
-    constructor(url){
+    constructor(url,opt={}){
         this.query = new ResourceQuery(url);
+        this.query.filters={};
 
         this.ready = false;
-        this.error=null;
-        this._page=1;
-        this.filters={};
-        this.debounce=200;
+        this.error = null;
+        this.debounce = 200;
+        this.debounceInit = true;
 
+        for(let k in opt){
+            switch(k){
+                case 'debounceInit':
+                case 'debounce':
+                    this[k]=opt[k];
+                    break;
+                default:
+                    this.query[k]=opt[k];
+            }
+        }
+
+        // Lazy init
         this.init=false;
     }
 
 
     get data(){
         if(!this.init){
-            this.init = true;
-            this.fetchImmediate();//Auto fetch
+            this.lazyInit();
         }
         return this.query.data
+    }
+
+    lazyInit(){
+        if(this.init)return;
+        //Auto fetch
+        console.log('QR init');
+        this.init = true;
+        if(this.debounceInit)
+            this.fetch();
+        else
+            this.fetchImmediate();
     }
 
     hasError(){return this.error;}
@@ -30,7 +52,7 @@ class QuerableResult {
     get itemsPerPage(){return this.query.itemsPerPage;}
     set itemsPerPage(v){
         if(this.query.itemsPerPage===v){
-            console.log('itemsPerPage ('+this.query.itemsPerPage+')already',v)
+            console.log('itemsPerPage ('+this.query.itemsPerPage+')already',v);
             return;
         }
 
@@ -61,10 +83,12 @@ class QuerableResult {
         this.query.filters(this.filters);
         this.fetch();
     }
+
     set filters(filters){
         this.query.filters = filters;
         this.fetch();
     }
+
     get filters(){return this.query.filters}
 
     orderBy(field,direction){
@@ -81,6 +105,9 @@ class QuerableResult {
 
 
     async fetch(){
+        if(!this.init)
+            return this.lazyInit();
+
         //Clear timer if present
         this._debounce_timer && clearTimeout(this._debounce_timer);
 
@@ -106,13 +133,25 @@ class QuerableResult {
     }
 
     async fetchImmediate(){
-        // _.debounce(()=>{
+        //Clear timer if present
+        this._debounce_timer && clearTimeout(this._debounce_timer);
+
+        //Cancel last pending request if present
+        if(this._request){
+            console.log('cancel pending request');
+            this._request.cancel();
+        }
+        this.init=true;
+
         console.log('Qr fetch...');
         this.ready = false;
 		this.error = null;
 
         try{
-            let r = await this.query.fetch();
+            this._request = this.query.fetch();
+
+            let r = await this._request;
+            this._request = null;
 
             this.ready = true;
             this.error = null;

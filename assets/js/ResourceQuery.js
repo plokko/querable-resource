@@ -12,7 +12,7 @@ class ResourceQuery
             Object.assign(this._opt,opt);
         this._result = data;
         this._params={
-            page:null,
+            page:1,
             per_page:null,
             filter:{},
         };
@@ -126,9 +126,19 @@ class ResourceQuery
         }
         
         let method = this._opt.method||'get';
-
-        let result = await axios[method](url,method==='get'?{params}:params);
+        this.cancelToken = axios.CancelToken.source();
+        let result = await axios[method](url,method==='get'?{params}:params,{
+            cancelToken : this.cancelToken.token,
+        });
+        this.cancelToken = null;
         return new ResourceQuery(url,this._opt,result.data);
+    }
+
+    cancel(){
+        if(!this.cancelToken)
+            return false;
+        this.cancelToken.cancel('Operation canceled by the user.');
+        return true;
     }
 
     async fetch()
