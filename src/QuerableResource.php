@@ -4,6 +4,7 @@ namespace Plokko\QuerableResource;
 use Exception;
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Http\Resources\Json\Resource;
 use JsonSerializable;
 use IteratorAggregate;
 use Illuminate\Contracts\Support\Responsable;
@@ -52,8 +53,18 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
          */
         $orderBy                = null;
 
+    private
+        /**
+         * @var Resource $resource Resource cache
+         */
+        $resource;
+        
     function __construct(){}
 
+    /**
+     * @param Builder $query
+     * @param array $filterValues
+     */
     protected function filter(Builder &$query,array $filterValues=[]){
         if($this->filteredFields)
         {
@@ -95,67 +106,86 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         }
     }
 
-
+    /**
+     * Returns the base query to be used in the resource
+     * must be implemented on the final class implementation
+     * @return Builder
+     */
     abstract protected function getQuery():Builder;
 
     ///
 
-
+    /**
+     * Build and returns the resource
+     * @internal
+     * @return \Illuminate\Http\Resources\Json\Resource
+     */
     final private function getResource(){
-        $query = $this->getQuery();
-        $request  =request();
+        if(!$this->resource) {
+            $query = $this->getQuery();
+            $request = request();
 
-        $orderBy=null;
+            $orderBy = null;
 
-        $this->filter($query,$this->filterQueryParameter?$request->input($this->filterQueryParameter,[]):$request->all());
+            $this->filter($query, $this->filterQueryParameter ? $request->input($this->filterQueryParameter, []) : $request->all());
 
-        // orderby
-        if($this->orderBy && $request->has($this->orderQueryParameter)){
-            $field      = $request->input($this->orderQueryParameter);
-            $direction  = ($request->input($this->orderQueryParameter.'_dir'))=='desc'?'desc':'asc';
+            // orderby
+            if ($this->orderBy && $request->has($this->orderQueryParameter)) {
+                $field = $request->input($this->orderQueryParameter);
+                $direction = ($request->input($this->orderQueryParameter . '_dir')) == 'desc' ? 'desc' : 'asc';
 
-            if($field && in_array($field,$this->orderBy)){
-                $query->orderBy($field,$direction);
-                $orderBy=compact('field','direction');
-            }
-        }
-
-        $result = null;
-        if($this->paginate){
-            $pageSize = $this->paginate;
-
-            if($this->paginations!=null && request()->has('per_page')){
-                $perPage = intval(request()->input('per_page'));
-                if(is_array($this->paginations)){
-                    if(in_array($perPage,$this->paginations)){
-                        $pageSize = $perPage;
-                    }
+                if ($field && in_array($field, $this->orderBy)) {
+                    $query->orderBy($field, $direction);
+                    $orderBy = compact('field', 'direction');
                 }
-                else
-                    $pageSize = min($perPage,$this->paginations);
             }
-            $result=$query->paginate($pageSize);
-        }else{
-            $result=$query->get();
+
+            $result = null;
+            if ($this->paginate) {
+                $pageSize = $this->paginate;
+
+                if ($this->paginations != null && request()->has('per_page')) {
+                    $perPage = intval(request()->input('per_page'));
+                    if (is_array($this->paginations)) {
+                        if (in_array($perPage, $this->paginations)) {
+                            $pageSize = $perPage;
+                        }
+                    } else
+                        $pageSize = min($perPage, $this->paginations);
+                }
+                $result = $query->paginate($pageSize);
+            } else {
+                $result = $query->get();
+            }
+
+            $resource = call_user_func([$this->useResource ?: \Illuminate\Http\Resources\Json\Resource::class, 'collection'], $result);
+            /**@var $resource \Illuminate\Http\Resources\Json\Resource* */
+
+            // Add orderBy info to response
+            if ($this->orderBy)
+                $resource->additional(['orderBy' => $orderBy]);
+            $this->resource = $resource;
         }
 
-        $resource = call_user_func([$this->useResource?:\Illuminate\Http\Resources\Json\Resource::class,'collection'],$result);
-        /**@var $resource \Illuminate\Http\Resources\Json\Resource**/
-
-        // Add orderBy info to response
-        if($this->orderBy)
-            $resource->additional(['orderBy'=>$orderBy]);
-
-        return $resource;
+        return $this->resource;
     }
 
+    /**
+     * Sets the pagination
+     * @param integer $page_size items per page
+     */
     public function paginate($page_size){
         $this->paginate = $page_size;
     }
 
+    /**
+     * Set the Http resource class to cast the result into
+     * @param string $resourceClassName
+     */
     public function useResource($resourceClassName){
         $this->useResource = $resourceClassName;
     }
+    
     /**
      * Automatically casts to response
      * @param  \Illuminate\Http\Request $request
@@ -210,8 +240,10 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
     function __call($key,$args){
         switch($key){
+            // Wrapper for resource methods
             case 'links':
-                return $this->getResource()->resource->links();
+            case 'appends':
+                return call_user_func_array([$this->getResource()->resource,$key],$args);
             default:
         }
     }
