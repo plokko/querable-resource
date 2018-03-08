@@ -107,6 +107,15 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     }
 
     /**
+     * @param Builder $query Query to order
+     * @param string $field Field to be ordered
+     * @param string $direction Direction of order (asc or desc)
+     */
+    protected function orderBy($query,$field,$direction){
+        $query->orderBy($field, $direction);
+    }
+
+    /**
      * Returns the base query to be used in the resource
      * must be implemented on the final class implementation
      * @return Builder
@@ -135,7 +144,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
                 $direction = ($request->input($this->orderQueryParameter . '_dir')) == 'desc' ? 'desc' : 'asc';
 
                 if ($field && in_array($field, $this->orderBy)) {
-                    $query->orderBy($field, $direction);
+                    $this->orderBy($query,$field, $direction);
                     $orderBy = compact('field', 'direction');
                 }
             }
