@@ -30,7 +30,8 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         $paginations            = 20,
 
         /**
-         * Fields that can be filtered
+         * Fields that can be filtered as
+         *
          * @var array
          */
         $filteredFields         = [],
@@ -62,46 +63,43 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     function __construct(){}
 
     /**
+     * Returns the base query to be used in the resource
+     * must be implemented on the final class implementation
+     * @return Builder
+     */
+    abstract protected function getQuery():Builder;
+
+    /**
      * @param Builder $query
-     * @param array $filterValues
+     * @param array $filterValues Array of values to filter as:
+     *          [
+     *              alias => [
+     *                  type  - string - type of comparaison to do (ex. '=', 'like', '>=' etc.)
+     *                  field - string - field to filter
+     *                  value - string - value to filter
+     *              ]
+     *          ]
      */
     protected function filter(Builder &$query,array $filterValues=[]){
-        if($this->filteredFields)
+
+        ///-- Apply filters --//
+        foreach($filterValues AS $filter)
         {
+            $field = $filter['field'];
+            $value = $filter['value'];
+            $type  = $filter['type'];
 
-            //-- Prepare filters if sequentials --//
-            $filters = $this->filteredFields;
-
-            $keys = array_keys($filters);
-            if($keys==array_keys($keys)){
-                //filter is NOT associative, fill keys
-                $filters=array_fill_keys(array_values($filters),'like');
-            }
-            unset($keys);
-
-            ///-- Apply filters --//
-            foreach($filterValues AS $key => $value)
+            switch($type)
             {
-                if(!array_key_exists($key,$filters))
-                    continue;
-                $filter = $filters[$key];
-                $filterType='=';
-                if(is_array($filter))
-                {
-                    $filterType=$filter['type']?:'=';
-                }else{
-                    $filterType = $filter;
-                }
-                switch($filterType)
-                {
-                    case '=':case 'equals':
-                        $query->where($key,$value);
-                        break;
-                    case 'like':
-                        $query->where($key,'LIKE',$value.'%');
+                case 'equals':
+                    $type = '=';
+                case '=':case '>=':case '<=':case '<':case '>':
+                    $query->where($field,$type,$value);
                     break;
-                    default:
-                }
+                case 'like':
+                    $query->where($field,'like',$value.'%');
+                break;
+                default:
             }
         }
     }
@@ -115,14 +113,56 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         $query->orderBy($field, $direction);
     }
 
-    /**
-     * Returns the base query to be used in the resource
-     * must be implemented on the final class implementation
-     * @return Builder
-     */
-    abstract protected function getQuery():Builder;
 
     ///
+
+    /**
+     * Return an array of fields to filter
+     * @return array
+     */
+    private final function getFilters(){
+        $filters = [];
+        foreach($this->filteredFields AS $k=>$v){
+            $filterType = '=';
+
+            if(is_numeric($k)){
+                $filters[$v]=[
+                    'field' => $v,
+                    'type'  => '=',
+                ];
+            }else{
+                $filters[$k] = array_merge(['field'=>$k, 'type'=>'=',],(is_array($v)?$v:['field'=>$v]));
+            }
+        }
+        return $filters;
+    }
+
+    /**
+     * Returns an array of values to be filtered
+     *
+     *          [
+     *              alias => [
+     *                  type  - string - type of comparaison to do (ex. '=', 'like', '>=' etc.)
+     *                  field - string - field to filter
+     *                  value - string - value to filter
+     *              ]
+     *          ]
+     *
+     * @return array
+     */
+    private final function getFilteredValues(\Illuminate\Http\Request $request){
+        $queryPrefix = empty($this->filterQueryParameter)?'':$this->filterQueryParameter.'.';
+        $filteredValues = [];
+
+        foreach($this->getFilters() AS $alias => $opt){
+            if($request->has($queryPrefix.$alias)){
+                $value = $request->input($queryPrefix.$alias);
+                $filteredValues[$alias] = array_merge($opt,['value' => $value]);
+            }
+        }
+
+        return $filteredValues;
+    }
 
     /**
      * Build and returns the resource
@@ -136,7 +176,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
             $orderBy = null;
 
-            $this->filter($query, $this->filterQueryParameter ? $request->input($this->filterQueryParameter, []) : $request->all());
+            $this->filter($query, $this->getFilteredValues($request));
 
             // orderby
             if ($this->orderBy && $request->has($this->orderQueryParameter)) {
