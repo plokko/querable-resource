@@ -138,6 +138,15 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     }
 
     /**
+     * @param $alias
+     * @return array|null
+     */
+    protected function mapAlias($alias){
+        $filters = $thsi->getFilters();
+        return array_key_exists($alias,$filters)?$filters[$alias]:null;
+    }
+	
+    /**
      * Returns an array of values to be filtered
      *
      *          [
