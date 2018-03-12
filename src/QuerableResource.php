@@ -49,7 +49,8 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
          */
         $orderQueryParameter    = 'order_by',
         /**
-         * List of orderable fields or null if disabled
+         * List of orderable fields or null if disabled.
+         * Field can be specified as 'field' or 'alias'=>'field'
          * @var null|array
          */
         $orderBy                = null;
@@ -106,13 +107,14 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
     /**
      * @param Builder $query Query to order
-     * @param string $field Field to be ordered
+     * @param string|null $field Field to be ordered, null if none is specified (use default ordering)
      * @param string $direction Direction of order (asc or desc)
      */
-    protected function orderBy($query,$field,$direction){
-        $query->orderBy($field, $direction);
+    protected function orderBy($query,$field=null,$direction='asc'){
+        if($field){
+            $query->orderBy($field, $direction);
+        }
     }
-
 
     ///
 
@@ -137,15 +139,6 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         return $filters;
     }
 
-    /**
-     * @param $alias
-     * @return array|null
-     */
-    protected function mapAlias($alias){
-        $filters = $thsi->getFilters();
-        return array_key_exists($alias,$filters)?$filters[$alias]:null;
-    }
-	
     /**
      * Returns an array of values to be filtered
      *
@@ -192,10 +185,22 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
                 $field = $request->input($this->orderQueryParameter);
                 $direction = ($request->input($this->orderQueryParameter . '_dir')) == 'desc' ? 'desc' : 'asc';
 
-                if ($field && in_array($field, $this->orderBy)) {
+                //Orderby alias
+                if(array_key_exists($field,$this->orderBy)){
+                    $field = $this->orderBy[$field];
+                }elseif(!in_array($field, $this->orderBy)){
+                    $field = null;
+                }
+
+
+                if ($field){
                     $this->orderBy($query,$field, $direction);
                     $orderBy = compact('field', 'direction');
+                }else{
+                    $this->orderBy($query);
                 }
+            }else{
+                $this->orderBy($query);
             }
 
             $result = null;
@@ -220,8 +225,18 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
             /**@var $resource \Illuminate\Http\Resources\Json\Resource* */
 
             // Add orderBy info to response
-            if ($this->orderBy)
+            if ($this->orderBy){
+                /*
+                $orderBy=[];
+                foreach( $query->getQuery()->orders AS $o){
+                    $orderBy[]=[
+                            'field'     =>$o['column'],
+                            'direction' =>$o['direction'],
+                        ];
+                }
+                //*/
                 $resource->additional(['orderBy' => $orderBy]);
+            }
             $this->resource = $resource;
         }
 
