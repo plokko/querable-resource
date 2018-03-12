@@ -188,6 +188,10 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
                 //Orderby alias
                 if(array_key_exists($field,$this->orderBy)){
                     $field = $this->orderBy[$field];
+                    if(is_array($field)){
+                        $direction = !empty($field[1])&&$field[1]==='desc'?'desc':'asc';
+                        $field = $field[0];
+                    }
                 }elseif(!in_array($field, $this->orderBy)){
                     $field = null;
                 }
