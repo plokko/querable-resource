@@ -77,6 +77,40 @@ Route::get('/test',function(){
 });
 ```
 By default the comparison is done with the *LIKE 'value%'*; for example the page `/test?name=a` will search all the user with a name starting with 'a'.
+
+#### Alias
+If you want to use a query parameter different from the field you can specify the alias as key for the field:
+```php
+class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
+      protected
+        $filteredFields = [
+		'n' => 'name', // query parameter n to field name
+		'mail' => 'email', // query parameter mail to field email
+	];
+	//....
+}
+```
+#### Advanced filtering options
+Instead of the field name you can specify an array of filtering options like
+ - _field_ - string (required) - corresponding field name, required
+ - _type_ - string - type of comparaison (ex. '=','like','>','>=',...)
+```php
+class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
+      protected
+        $filteredFields = [
+		'n' => [ //an can be used
+			'field'=>'name', 
+			'type'=>'like',
+		],
+		[
+			'field'=>'email', // If no alias is specified field will be used as query parameter
+			//comparaison type is optional
+		]
+	];
+	//....
+}
+```
+
 #### Changing query field name
 If you want to group all filtering field in an input group, for example filter[filed_name], you need to edit the protected propriety *$filterQueryParameter* 
 
@@ -95,7 +129,7 @@ The url of the last example will now be `/test?filter[name]=a`
 
 #### Define filtering rules
 
-#### Advanced filtering rules
+#### Custom filtering function
 If your query needs a more fine-tuning you can override the default *filter* function and specify your custom filtering function:
 ```php
 class TestQuerableResource extends \Plokko\QuerableResource\QuerableResource {
