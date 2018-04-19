@@ -92,14 +92,19 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
             switch($type)
             {
-                case 'equals':
-                    $type = '=';
+                case 'equals':$type = '=';
                 case '=':case '>=':case '<=':case '<':case '>':
                     $query->where($field,$type,$value);
                     break;
                 case 'like':
+                    $query->where($field,'like','%'.$value.'%');
+                    break;
+                case 'startswith':case 'starts_with':
                     $query->where($field,'like',$value.'%');
-                break;
+                    break;
+                case 'endswith':case 'ends_with':
+                    $query->where($field,'like','%'.$value);
+                    break;
                 default:
             }
         }
