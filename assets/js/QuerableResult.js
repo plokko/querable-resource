@@ -79,8 +79,8 @@ class QuerableResult {
     }
 
     filter(key,value){
-        this.filters=Object.assign({},this.filters,{[key]:value});
-        this.query.filters(this.filters);
+        this.filters = Object.assign({},this.filters,{[key]:value});
+        this.query.filters = this.filters;
         this.fetch();
     }
 

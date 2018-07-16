@@ -124,10 +124,12 @@ class ResourceQuery
         }else{
             Object.assign(params,this._params.filter);
         }
+
+
         
         let method = this._opt.method||'get';
         this.cancelToken = axios.CancelToken.source();
-        let result = await axios[method](url,method==='get'?{params}:params,{
+        let result = await axios[method](url,method==='get'?{params:this._flattenParams(params)}:params,{
             cancelToken : this.cancelToken.token,
         });
         this.cancelToken = null;
@@ -168,6 +170,21 @@ class ResourceQuery
 
     resetResult(){
         this._result=null;
+    }
+
+    _flattenParams(params,prefix){
+        let data= {};
+
+        for(let k in params){
+            let v = params[k];
+            let key = prefix?`${prefix}[${k}]`:k;
+            if(typeof v  !== 'object')
+                data[key] = v;
+            else{
+                Object.assign(data,this._flattenParams(v,key));
+            }
+        }
+        return data;
     }
 }
 
