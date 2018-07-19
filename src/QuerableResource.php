@@ -90,6 +90,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
             $value = $filter['value'];
             $type  = $filter['type'];
 
+
             switch($type)
             {
                 case 'equals':$type = '=';
@@ -106,6 +107,9 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
                     $query->where($field,'like','%'.$value);
                     break;
                 default:
+                    if(is_callable($type)){
+                        $query = $type($query,$value,$field);
+                    }
             }
         }
     }
