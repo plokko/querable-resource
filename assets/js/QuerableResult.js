@@ -139,7 +139,7 @@ class QuerableResult {
         //Cancel last pending request if present
         if(this._request){
             console.log('cancel pending request');
-            this._request.cancel();
+            this.query.cancel();
         }
         this.init=true;
 
