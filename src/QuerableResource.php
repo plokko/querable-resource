@@ -116,12 +116,37 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
     /**
      * @param Builder $query Query to order
-     * @param string|null $field Field to be ordered, null if none is specified (use default ordering)
+     * @param string|null|array $sorting_opt Field to be ordered, null if none is specified (use default ordering)
      * @param string $direction Direction of order (asc or desc)
      */
-    protected function orderBy($query,$field=null,$direction='asc'){
-        if($field){
-            $query->orderBy($field, $direction);
+    protected function orderBy($query, $sorting_opt=null, $direction=null){
+        if($sorting_opt)
+        {
+            if(is_array($sorting_opt))
+            {
+                //multiple sorting fields
+                $len = count($sorting_opt);
+                $orderBy=[];
+                for($i=0;$i<$len;$i++){
+                    $v = $sorting_opt[$i];
+                    if(!is_array($v)){
+                        $dir = ($i+1<$len && ( $sorting_opt[$i+1] ==='asc'|| $sorting_opt[$i+1] ==='desc'))?
+                            $sorting_opt[++$i]:'asc';
+
+                        $orderBy[]=[$v,$dir];
+                    }else{
+                        $orderBy[]=[$v[0],isset($v[1]) && $v[1]=='desc'?'desc':'asc'];
+                    }
+                }
+
+                foreach($orderBy AS $opt){
+                    $order_field = $opt[0];
+                    $order_dir = $direction?:$opt[1];
+                    $query->orderBy($order_field,$order_dir);
+                }
+            }else{
+                $query->orderBy($sorting_opt, $direction=='desc'?'desc':'asc');
+            }
         }
     }
 
