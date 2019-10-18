@@ -141,7 +141,8 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
                 foreach($orderBy AS $opt){
                     $order_field = $opt[0];
-                    $order_dir = $direction?:$opt[1];
+                    $order_dir = $opt[1];
+                    
                     $query->orderBy($order_field,$order_dir);
                 }
             }else{
@@ -203,7 +204,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     /**
      * @return Builder
      */
-    final function buildQuery()
+    final private function buildQuery()
     {
         $query = $this->getQuery();
         $request = request();
@@ -237,7 +238,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         }else{
             $this->orderBy($query);
         }
-        return $query;
+        return compact('query','orderBy');
     }
 
     /**
@@ -245,7 +246,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
      * @return string
      */
     function toSql(){
-        return $this->buildQuery()->toSql();
+        return $this->buildQuery()['query']->toSql();
     }
 
     /**
@@ -255,7 +256,8 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
      */
     final private function getResource(){
         if(!$this->resource) {
-            $query = $this->buildQuery();
+            extract($this->buildQuery());
+
             $result = null;
             if ($this->paginate) {
                 $pageSize = $this->paginate;
