@@ -201,46 +201,61 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     }
 
     /**
+     * @return Builder
+     */
+    final function buildQuery()
+    {
+        $query = $this->getQuery();
+        $request = request();
+
+        $orderBy = null;
+
+        $this->filter($query, $this->getFilteredValues($request));
+
+        // orderby
+        if ($this->orderBy && $request->has($this->orderQueryParameter)) {
+            $field = $request->input($this->orderQueryParameter);
+            $direction = ($request->input($this->orderQueryParameter . '_dir')) == 'desc' ? 'desc' : 'asc';
+
+            //Orderby alias
+            if(array_key_exists($field,$this->orderBy)){
+                $field = $this->orderBy[$field];
+                if(is_array($field) && !is_array($field[0])){
+                    $direction = !empty($field[1])&&$field[1]==='desc'?'desc':'asc';
+                    $field = $field[0];
+                }
+            }elseif(!in_array($field, $this->orderBy)){
+                $field = null;
+            }
+
+            if ($field){
+                $this->orderBy($query,$field, $direction);
+                $orderBy = compact('field', 'direction');
+            }else{
+                $this->orderBy($query);
+            }
+        }else{
+            $this->orderBy($query);
+        }
+        return $query;
+    }
+
+    /**
+     * Return generated SQL query
+     * @return string
+     */
+    function toSql(){
+        return $this->buildQuery()->toSql();
+    }
+
+    /**
      * Build and returns the resource
      * @internal
      * @return \Illuminate\Http\Resources\Json\Resource
      */
     final private function getResource(){
         if(!$this->resource) {
-            $query = $this->getQuery();
-            $request = request();
-
-            $orderBy = null;
-
-            $this->filter($query, $this->getFilteredValues($request));
-
-            // orderby
-            if ($this->orderBy && $request->has($this->orderQueryParameter)) {
-                $field = $request->input($this->orderQueryParameter);
-                $direction = ($request->input($this->orderQueryParameter . '_dir')) == 'desc' ? 'desc' : 'asc';
-
-                //Orderby alias
-                if(array_key_exists($field,$this->orderBy)){
-                    $field = $this->orderBy[$field];
-                    if(is_array($field)){
-                        $direction = !empty($field[1])&&$field[1]==='desc'?'desc':'asc';
-                        $field = $field[0];
-                    }
-                }elseif(!in_array($field, $this->orderBy)){
-                    $field = null;
-                }
-
-
-                if ($field){
-                    $this->orderBy($query,$field, $direction);
-                    $orderBy = compact('field', 'direction');
-                }else{
-                    $this->orderBy($query);
-                }
-            }else{
-                $this->orderBy($query);
-            }
-
+            $query = $this->buildQuery();
             $result = null;
             if ($this->paginate) {
                 $pageSize = $this->paginate;
