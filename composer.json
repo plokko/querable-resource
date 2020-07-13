@@ -1,9 +1,8 @@
 {
 	"name": "plokko/querable-resource",
-	"description": "Ajax-querable resource for Laravel 5.5",
+	"description": "Ajax-querable resource for Laravel",
 	"keywords": [
 		"laravel",
-		"laravel 5.5",
 		"resource",
 		"eloquent",
 		"filter",
@@ -16,6 +15,6 @@
 	},
 	"require": {
 		"php": ">=7.0.0",
-		"laravel/framework": "^5.5.0 || ^6.0 || ^7.0"
+		"illuminate/support": "^5.4.0|^6.0|^7.0"
 	}
 }
