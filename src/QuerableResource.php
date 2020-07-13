@@ -4,7 +4,7 @@ namespace Plokko\QuerableResource;
 use Exception;
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Http\Resources\Json\Resource;
+use Illuminate\Http\Resources\Json\JsonResource as Resource;
 use JsonSerializable;
 use IteratorAggregate;
 use Illuminate\Contracts\Support\Responsable;
@@ -252,11 +252,15 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     /**
      * Build and returns the resource
      * @internal
-     * @return \Illuminate\Http\Resources\Json\Resource
+     * @return Resource
      */
     final private function getResource(){
         if(!$this->resource) {
             extract($this->buildQuery());
+            /**
+             * @var $query
+             * @var $orderBy
+             */
 
             $result = null;
             if ($this->paginate) {
@@ -276,8 +280,8 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
                 $result = $query->get();
             }
 
-            $resource = call_user_func([$this->useResource ?: \Illuminate\Http\Resources\Json\Resource::class, 'collection'], $result);
-            /**@var $resource \Illuminate\Http\Resources\Json\Resource* */
+            $resource = call_user_func([$this->useResource ?: Resource::class, 'collection'], $result);
+            /**@var $resource Resource* */
 
             // Add orderBy info to response
             if ($this->orderBy){
@@ -317,7 +321,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     /**
      * Automatically casts to response
      * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public final function toResponse($request)
     {
@@ -352,7 +356,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
         return $this->getQuery()->getRouteKeyName();
     }
 
-    public final function resolveRouteBinding($value)
+    public final function resolveRouteBinding($value,$field=null)
     {
         throw new Exception('Resources may not be implicitly resolved from route bindings.');
     }
@@ -362,7 +366,7 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
     }
 
     public function getIterator() {
-        return $this->getResource();
+        return new \ArrayObject($this->getResource());
     }
 
 
@@ -378,5 +382,10 @@ abstract class QuerableResource implements Responsable, JsonSerializable, UrlRou
 
     public function toArray(){
         return $this->getResource()->toArray(request());
+    }
+
+    public function resolveChildRouteBinding($childType, $value, $field)
+    {
+        return $this->getQuery()->getModel()->resolveChildRouteBinding($childType, $value, $field);
     }
 }
