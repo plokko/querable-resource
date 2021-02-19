@@ -3,7 +3,7 @@ A Laravel class that helps querying(paging and filtering) and returning Eloquent
 
 Supports Laravel 5.5 Resources.
 ## Installation
-Install it throught composer `composer require plokko\querable-resource`
+Install it throught composer `composer require plokko/querable-resource`
 
 ## Quick start
 First of all you need to extend the `Plokko\QuerableResource\QuerableResource` class implementing the *getQuery* method that returns the base query:
